@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invoice</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0B1120; color:#E6EDF7; margin:0; padding:24px; }
+  .card { max-width:560px; margin:0 auto; background:#0F1C30; border:1px solid #223350; border-radius:18px; padding:24px; }
+  .head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
+  .brand { font-weight:800; font-size:18px; }
+  .amount { font-weight:900; font-size:22px; color:#3C9BFF; }
+  .muted { color:#8AA0C0; font-size:12px; }
+  .meta { display:flex; gap:18px; margin-bottom:16px; font-size:13px; flex-wrap:wrap; }
+  table { width:100%; border-collapse:collapse; margin:16px 0; font-size:13px; }
+  th, td { padding:8px 4px; border-bottom:1px solid #223350; text-align:left; }
+  .totals div { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; }
+  .total-row { font-weight:900; font-size:16px; border-top:1px solid #223350; margin-top:6px; padding-top:10px !important; }
+  p { font-size:14px; line-height:1.5; }
+  .loading, .error { max-width:560px; margin:60px auto; text-align:center; color:#8AA0C0; }
+</style>
+</head>
+<body>
+  <div id="root" class="loading">Loading invoice...</div>
+
+  <script>
+    var SUPABASE_URL = 'https://zizcipmkvpxsqjtpqarx.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppemNpcG1rdnB4c3FqdHBxYXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODM2NDUsImV4cCI6MjA5NjI1OTY0NX0._z6skyTQKmSpkXNIQmPPurJIECzp0h-BzgfNMpBLFdQ';
+
+    function money(value) {
+      var clean = Math.abs(value) < 0.005 ? 0 : value;
+      return '\u00A3' + clean.toFixed(2);
+    }
+
+    function escapeHtml(value) {
+      var div = document.createElement('div');
+      div.textContent = String(value == null ? '' : value);
+      return div.innerHTML;
+    }
+
+    function renderError(message) {
+      document.getElementById('root').outerHTML =
+        '<div class="error"><p>' + escapeHtml(message) + '</p></div>';
+    }
+
+    function renderInvoice(inv) {
+      var lines = Array.isArray(inv.lines) ? inv.lines : [];
+      var lineRows = lines.map(function (line) {
+        return '<tr>' +
+          '<td>' + escapeHtml(line.description || line.type || '') + '</td>' +
+          '<td style="text-align:right">' + escapeHtml(line.qty || '') + '</td>' +
+          '<td style="text-align:right">' + money(Number(line.rate || 0)) + '</td>' +
+          '<td style="text-align:right">' + money(Number(line.amount || 0)) + '</td>' +
+          '</tr>';
+      }).join('');
+
+      var vatRow = inv.reverse_charge
+        ? '<div><span class="muted">VAT</span><span>Reverse charge - customer to account for VAT</span></div>'
+        : '<div><span class="muted">VAT</span><span>' + money(Number(inv.vat_amount || 0)) + '</span></div>';
+
+      var cisRow = Number(inv.cis_amount || 0) > 0
+        ? '<div><span class="muted">CIS deduction</span><span>-' + money(Number(inv.cis_amount || 0)) + '</span></div>'
+        : '';
+
+      var html =
+        '<div class="card">' +
+          '<div class="head">' +
+            '<div>' +
+              '<div class="brand">' + escapeHtml(inv.business_name || inv.business_owner_name || 'Invoice') + '</div>' +
+              '<div class="muted">Invoice ' + escapeHtml(inv.invoice_number || '') + '</div>' +
+            '</div>' +
+            '<div class="amount">' + money(Number(inv.total_amount || 0)) + '</div>' +
+          '</div>' +
+          '<div class="meta">' +
+            '<div><span class="muted">Billed to</span><br>' + escapeHtml(inv.client_name || '') + '</div>' +
+            '<div><span class="muted">Date</span><br>' + escapeHtml(inv.invoice_date || '') + '</div>' +
+            '<div><span class="muted">Due</span><br>' + escapeHtml(inv.due_date || '') + '</div>' +
+          '</div>' +
+          (inv.description ? '<p>' + escapeHtml(inv.description) + '</p>' : '') +
+          (lineRows ? '<table><thead><tr><th>Description</th><th style="text-align:right">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>' + lineRows + '</tbody></table>' : '') +
+          '<div class="totals">' +
+            '<div><span class="muted">Net</span><span>' + money(Number(inv.net_amount || 0)) + '</span></div>' +
+            vatRow +
+            cisRow +
+            '<div class="total-row"><span>Total</span><span>' + money(Number(inv.total_amount || 0)) + '</span></div>' +
+          '</div>' +
+        '</div>';
+
+      document.getElementById('root').outerHTML = html;
+      document.title = 'Invoice ' + (inv.invoice_number || '');
+    }
+
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('token');
+      if (!token) {
+        renderError('This link is missing its invoice reference.');
+        return;
+      }
+
+      fetch(SUPABASE_URL + '/functions/v1/invoice-view/' + encodeURIComponent(token), {
+        headers: { apikey: SUPABASE_ANON_KEY },
+      })
+        .then(function (res) {
+          return res.json().then(function (data) {
+            if (!res.ok) throw new Error(data.error || 'This invoice link is no longer available.');
+            return data;
+          });
+        })
+        .then(renderInvoice)
+        .catch(function (err) {
+          renderError(err.message || 'Something went wrong loading this invoice.');
+        });
+    })();
+  </script>
+</body>
+</html>
