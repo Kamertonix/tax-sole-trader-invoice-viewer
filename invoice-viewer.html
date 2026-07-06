@@ -25,11 +25,21 @@
 
   <script>
     var SUPABASE_URL = 'https://zizcipmkvpxsqjtpqarx.supabase.co';
-    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppemNpcG1rdnB4c3FqdHBxYXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODM2NDUsImV4cCI6MjA5NjI1OTY0NX0._z6skyTQKmSpkXNIQmPPurJIECzp0h-BzgfNMpBLFdQ';
+    var SUPABASE_ANON_KEY = 'REPLACE_WITH_YOUR_ANON_KEY';
 
     function money(value) {
       var clean = Math.abs(value) < 0.005 ? 0 : value;
-      return '\u00A3' + clean.toFixed(2);
+      var negative = clean < 0;
+      var fixed = Math.abs(clean).toFixed(2);
+      var parts = fixed.split('.');
+      var whole = parts[0];
+      var grouped = '';
+      for (var i = 0; i < whole.length; i++) {
+        var remaining = whole.length - i;
+        if (i > 0 && remaining % 3 === 0) grouped += ',';
+        grouped += whole[i];
+      }
+      return (negative ? '-' : '') + '\u00A3' + grouped + '.' + parts[1];
     }
 
     function escapeHtml(value) {
