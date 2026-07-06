@@ -18,6 +18,14 @@
   .total-row { font-weight:900; font-size:16px; border-top:1px solid #223350; margin-top:6px; padding-top:10px !important; }
   p { font-size:14px; line-height:1.5; }
   .loading, .error { max-width:560px; margin:60px auto; text-align:center; color:#8AA0C0; }
+  .actions { margin-top:16px; }
+  .pdf-btn { display:block; text-align:center; background:#1E3A66; color:#E6EDF7; text-decoration:none; padding:12px; border-radius:12px; font-weight:800; font-size:14px; }
+  .pdf-btn:hover { background:#254a80; }
+  .paynow { margin-top:16px; background:#0B1120; border:1px solid #2F5B2F; border-radius:14px; padding:14px; }
+  .paynow-title { font-weight:900; font-size:14px; color:#7CE38B; margin-bottom:6px; }
+  .paynow-hint { font-size:12px; color:#8AA0C0; margin-bottom:10px; line-height:1.4; }
+  .bank-rows div { display:flex; justify-content:space-between; padding:3px 0; font-size:13px; }
+  .bank-rows span:last-child { font-weight:800; }
 </style>
 </head>
 <body>
@@ -72,6 +80,28 @@
         ? '<div><span class="muted">CIS deduction</span><span>-' + money(Number(inv.cis_amount || 0)) + '</span></div>'
         : '';
 
+      var pdfButton = inv.pdf_url
+        ? '<a class="pdf-btn" href="' + escapeHtml(inv.pdf_url) + '" target="_blank" rel="noopener">Download PDF</a>'
+        : '';
+
+      var hasBankDetails = (inv.bank_account_number || inv.bank_iban);
+      var payNowSection = '';
+      if (hasBankDetails) {
+        var bankRows = '';
+        if (inv.bank_account_holder) bankRows += '<div><span class="muted">Account name</span><span>' + escapeHtml(inv.bank_account_holder) + '</span></div>';
+        if (inv.bank_name) bankRows += '<div><span class="muted">Bank</span><span>' + escapeHtml(inv.bank_name) + '</span></div>';
+        if (inv.bank_sort_code) bankRows += '<div><span class="muted">Sort code</span><span>' + escapeHtml(inv.bank_sort_code) + '</span></div>';
+        if (inv.bank_account_number) bankRows += '<div><span class="muted">Account number</span><span>' + escapeHtml(inv.bank_account_number) + '</span></div>';
+        if (inv.bank_iban) bankRows += '<div><span class="muted">IBAN</span><span>' + escapeHtml(inv.bank_iban) + '</span></div>';
+        if (inv.bank_payment_reference) bankRows += '<div><span class="muted">Payment reference</span><span>' + escapeHtml(inv.bank_payment_reference) + '</span></div>';
+        payNowSection =
+          '<div class="paynow">' +
+            '<div class="paynow-title">💳 Pay Now — Bank Transfer</div>' +
+            '<div class="paynow-hint">Pay directly from your bank using these details. Please include the payment reference so it\'s matched to this invoice.</div>' +
+            '<div class="bank-rows">' + bankRows + '</div>' +
+          '</div>';
+      }
+
       var html =
         '<div class="card">' +
           '<div class="head">' +
@@ -94,6 +124,8 @@
             cisRow +
             '<div class="total-row"><span>Total</span><span>' + money(Number(inv.total_amount || 0)) + '</span></div>' +
           '</div>' +
+          (pdfButton ? '<div class="actions">' + pdfButton + '</div>' : '') +
+          payNowSection +
         '</div>';
 
       document.getElementById('root').outerHTML = html;
