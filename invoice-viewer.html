@@ -26,6 +26,11 @@
   .paynow-hint { font-size:12px; color:#8AA0C0; margin-bottom:10px; line-height:1.4; }
   .bank-rows div { display:flex; justify-content:space-between; padding:3px 0; font-size:13px; }
   .bank-rows span:last-child { font-weight:800; }
+  .footer { max-width:560px; margin:22px auto 0; text-align:center; }
+  .footer-line { display:flex; height:3px; border-radius:2px; overflow:hidden; margin-bottom:12px; }
+  .footer-line span:first-child { flex:72; background:#1E8FFF; }
+  .footer-line span:last-child { flex:28; background:#FFA726; }
+  .footer-text { font-size:11px; color:#8AA0C0; line-height:1.6; }
 </style>
 </head>
 <body>
@@ -33,7 +38,7 @@
 
   <script>
     var SUPABASE_URL = 'https://zizcipmkvpxsqjtpqarx.supabase.co';
-    var SUPABASE_ANON_KEY = 'REPLACE_WITH_YOUR_ANON_KEY';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InppemNpcG1rdnB4c3FqdHBxYXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODM2NDUsImV4cCI6MjA5NjI1OTY0NX0._z6skyTQKmSpkXNIQmPPurJIECzp0h-BzgfNMpBLFdQ';
 
     function money(value) {
       var clean = Math.abs(value) < 0.005 ? 0 : value;
@@ -128,7 +133,16 @@
           payNowSection +
         '</div>';
 
-      document.getElementById('root').outerHTML = html;
+      var footer =
+        '<div class="footer">' +
+          '<div class="footer-line"><span></span><span></span></div>' +
+          '<div class="footer-text">' +
+            '\u00A9 ' + new Date().getFullYear() + ' Tax Sole Trader. Built for UK Sole Traders. VAT | CIS | Self Assessment.<br>' +
+            'Proprietary document template. Generated locally by Tax Sole Trader.' +
+          '</div>' +
+        '</div>';
+
+      document.getElementById('root').outerHTML = html + footer;
       document.title = 'Invoice ' + (inv.invoice_number || '');
     }
 
